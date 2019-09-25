@@ -43,8 +43,8 @@ public class Application {
 
     //allTestData.stream().forEach(data -> System.out.println(data.getRssFeedId()+"-"+getMaximumLagArticleSource(data.getAccountArticleSources()).getArticleCreationLag()));
 
-    //allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getCacheEstimate()));
-    allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getMaximumLag().get()));
+    allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getCacheEstimate()));
+    //allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getMaximumLag().get()));
   }
 
   /**
@@ -112,22 +112,4 @@ public class Application {
     return loadedData;
   }
 
-  static long getMaximumLag(List<AccountArticleSource> accountArticleSources) {
-    return accountArticleSources.stream()
-            .map(source -> source.getArticleCreationLag())
-            .max(Long::compare).get();
-    //.max(Comparator.comparingLong(AccountArticleSource::getArticleCreationLag)).get();
-  }
-
-  static AccountArticleSource getMaximumLagArticleSource(List<AccountArticleSource> accountArticleSources) {
-    Optional<AccountArticleSource> source = accountArticleSources.stream()
-            //.map(source -> source.getArticleCreationLag())
-            .max(Comparator.comparingLong(AccountArticleSource::getArticleCreationLag));
-
-    if(source.isPresent()) {
-      return source.get();
-    }
-
-    return null;
-  }
 }

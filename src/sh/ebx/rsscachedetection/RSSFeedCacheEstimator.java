@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 public class RSSFeedCacheEstimator {
 
-    RSSTestData data;
+    private RSSTestData data;
 
     public RSSFeedCacheEstimator(RSSTestData data) {
         this.data = data;
@@ -13,31 +13,66 @@ public class RSSFeedCacheEstimator {
 
     public RSSFeedCacheEstimate getCacheEstimate() {
 
+        RSSFeedCacheEstimate estimate = null;
+
+        switch (data.getRssType())
+        {
+            case NORMAL: estimate = getCacheEstimateForNormalFeed();
+                         break;
+            case BAD_PUBLISH_TIME: estimate = getCacheEstimateForBadFeed();
+        }
+
+        return estimate;
+    }
+
+    private RSSFeedCacheEstimate getCacheEstimateForNormalFeed() {
         Long maximumLag = getMaximumLag().orElse(0L);
 
-        Long maximumLagInSeconds = TimeUnit.MILLISECONDS.toSeconds(maximumLag);
+        return getCacheEstimateForLag(maximumLag);
+    }
 
-        Long estimatedCachingInterval = getEstimatedCachingInterval(maximumLagInSeconds);
+    private RSSFeedCacheEstimate getCacheEstimateForBadFeed() {
+        Long averageLag = getAverageLag();
 
-        boolean cached = estimatedCachingInterval > 0L;
+        return getCacheEstimateForLag(averageLag);
+    }
+
+    private RSSFeedCacheEstimate getCacheEstimateForLag(final Long lag)
+    {
+        Long lagInSeconds = TimeUnit.MILLISECONDS.toSeconds(lag);
+
+        Long estimatedCachingInterval = getEstimatedCachingInterval(lagInSeconds);
+
+        boolean cached = estimatedCachingInterval > EstimationConfig.NON_CACHING_TIME_SECS;
 
         return new RSSFeedCacheEstimate(data.getRssFeedId(), cached, estimatedCachingInterval);
     }
 
-    Optional<Long> getMaximumLag() {
+    private Optional<Long> getMaximumLag() {
         return data.getAccountArticleSources().stream()
-                .map(source -> source.getArticleCreationLag())
+                .map(AccountArticleSource::getArticleCreationLag)
                 .max(Long::compare);
-        //.max(Comparator.comparingLong(AccountArticleSource::getArticleCreationLag)).get();
     }
 
-    private Long getEstimatedCachingInterval(Long maximumLagInSeconds) {
-        Long lagDifference = maximumLagInSeconds - EstimationConfig.NON_CACHING_TIME_SECS;
+    private Optional<Long> getMinimumLag() {
+        return data.getAccountArticleSources().stream()
+                        .map(AccountArticleSource::getArticleCreationLag)
+                        .min(Long::compare);
+    }
 
-        if(lagDifference > 0L) {
-            return (lagDifference + 5) / 10 * 10;
+    private Long getAverageLag() {
+        Long maximumLag = getMaximumLag().orElse(0L);
+
+        if(maximumLag == 0L) {
+            return maximumLag;
         }
 
-        return 0L;
+        Long minimumLag = getMinimumLag().orElse(0L);
+
+        return (minimumLag + maximumLag) / 2;
+    }
+
+    Long getEstimatedCachingInterval(Long estimateInSeconds) {
+        return (estimateInSeconds + 30) / 60 * 60;
     }
 }
