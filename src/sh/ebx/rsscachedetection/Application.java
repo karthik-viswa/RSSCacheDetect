@@ -16,8 +16,10 @@ package sh.ebx.rsscachedetection;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,14 +39,13 @@ public class Application {
     List<RSSTestData> allTestData = getAllTestData();
     
     /* Challenge code starts here, Good luck! */
-    Set<RSSFeedId> uniqueIds = allTestData.stream().map(data -> data.getRssFeedId()).collect(Collectors.toSet());
 
-    System.out.println(uniqueIds.size());
+    List<RSSFeedCacheEstimate> cacheEstimates = allTestData.stream()
+                                                .map(RSSFeedCacheEstimator::new)
+                                                .map(RSSFeedCacheEstimator::getCacheEstimate)
+                                                .collect(Collectors.toList());
 
-    //allTestData.stream().forEach(data -> System.out.println(data.getRssFeedId()+"-"+getMaximumLagArticleSource(data.getAccountArticleSources()).getArticleCreationLag()));
-
-    allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getCacheEstimate()));
-    //allTestData.stream().map(data -> new RSSFeedCacheEstimator(data)).forEach(estimate -> System.out.println(estimate.getMaximumLag().get()));
+    writeResultsToFile(cacheEstimates);
   }
 
   /**
@@ -110,6 +111,23 @@ public class Application {
     System.out.println("loadedData:" + loadedData.size());
 
     return loadedData;
+  }
+
+  private static void writeResultsToFile(List<RSSFeedCacheEstimate> cacheEstimates) {
+    File csvOutputFile = new File("CACHE_ESTIMATES.csv");
+
+    String header = "FeedIdentifier,Caching?,CachingInterval";
+
+    try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
+        pw.println(header);
+        cacheEstimates.stream()
+                      .map(RSSFeedCacheEstimate::getAsCsv)
+                      .forEach(pw::println);
+    }
+    catch (FileNotFoundException e)
+    {
+      System.out.println("Could not find the file to write the results to");
+    }
   }
 
 }

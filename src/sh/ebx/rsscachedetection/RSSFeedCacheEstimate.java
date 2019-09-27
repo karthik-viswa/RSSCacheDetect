@@ -1,11 +1,11 @@
 package sh.ebx.rsscachedetection;
 
 public class RSSFeedCacheEstimate {
-    RSSFeedId feedId;
+    private RSSFeedId feedId;
 
-    boolean cached;
+    private boolean cached;
 
-    long cacheInterval;
+    private long cacheInterval;
 
     public RSSFeedCacheEstimate(RSSFeedId feedId, boolean cached, long cacheInterval) {
         this.feedId = feedId;
@@ -32,5 +32,9 @@ public class RSSFeedCacheEstimate {
                 ", cached=" + cached +
                 ", cacheInterval=" + cacheInterval +
                 '}';
+    }
+
+    public String getAsCsv() {
+        return feedId + "," + cached + "," + cacheInterval;
     }
 }
